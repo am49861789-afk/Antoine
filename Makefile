@@ -5,7 +5,7 @@ APP_TMP         = $(TMPDIR)/antoine-build
 APP_BUNDLE_PATH 	= $(APP_TMP)/Build/Products/Release-iphoneos/Antoine.app
 
 all:
-	xcodebuild -quiet -jobs $(shell sysctl -n hw.ncpu) -project 'Antoine.xcodeproj' -scheme Antoine -configuration Release -arch arm64 -sdk iphoneos -derivedDataPath $(APP_TMP) \
+	xcodebuild -quiet -jobs $(shell sysctl -n hw.ncpu) -project 'Antoine.xcodeproj' -scheme Antoine -configuration Release -arch arm64 -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath $(APP_TMP) \
 		CODE_SIGNING_ALLOWED=NO DSTROOT=$(APP_TMP)/install ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES 
 	ldid -SAntoineEntitlements.xml $(APP_BUNDLE_PATH)/Antoine
 	rm -rf build
