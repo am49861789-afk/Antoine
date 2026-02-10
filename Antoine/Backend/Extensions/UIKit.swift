@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import ObjectiveC
 
 extension UILabel {
     convenience init(text: String) {
@@ -42,11 +43,24 @@ extension UIControl {
     }
 }
 
+// MARK: - Keep UIDocumentInteractionController alive
+private struct AntoineAssociatedKeys {
+    static var docController = "antoine.docController"
+}
+
+private extension UIViewController {
+    var antoineDocController: UIDocumentInteractionController? {
+        get { objc_getAssociatedObject(self, &AntoineAssociatedKeys.docController) as? UIDocumentInteractionController }
+        set { objc_setAssociatedObject(self, &AntoineAssociatedKeys.docController, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+}
+
 extension UIViewController {
     func errorAlert(
         title: String,
         description: String?,
-        actions: [UIAlertAction] = [UIAlertAction(title: "OK", style: .cancel)]) {
+        actions: [UIAlertAction] = [UIAlertAction(title: "OK", style: .cancel)]
+    ) {
         let alert = UIAlertController(title: title, message: description, preferredStyle: .alert)
         for action in actions {
             alert.addAction(action)
@@ -59,9 +73,13 @@ extension UIViewController {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
             let serialized = try encoder.encode(CodableEntry(streamEntry: entry))
+            
             let docsURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("Antoine Logs")
-            try FileManager.default.createDirectory(at: docsURL, withIntermediateDirectories: true) /* if dir doesn't already exist */
+            
+            // if dir doesn't already exist
+            try FileManager.default.createDirectory(at: docsURL, withIntermediateDirectories: true)
+            
             let fileURL = docsURL
                 .appendingPathComponent(
                     "\(entry.process) (\(DateFormatter(dateFormat: "MMM d h:mm a").string(from: entry.timestamp)))"
@@ -69,11 +87,18 @@ extension UIViewController {
                 .appendingPathExtension("antoinelog")
             
             if FileManager.default.createFile(atPath: fileURL.path, contents: serialized) {
-                let vc = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+                let doc = UIDocumentInteractionController(url: fileURL)
+                doc.delegate = self
                 
-                vc.popoverPresentationController?.sourceView = senderView
-                vc.popoverPresentationController?.sourceRect = /*sender.frame*/senderRect
-                present(vc, animated: true)
+                // Optional: keep your custom UTI (Info.plist declares it)
+                doc.uti = "com.serena.antoine.logfile"
+                doc.name = fileURL.lastPathComponent
+                
+                // Keep strong reference (otherwise menu can disappear)
+                self.antoineDocController = doc
+                
+                // Presents a system “Open In / Share” options menu (often includes AirDrop)
+                doc.presentOptionsMenu(from: senderRect, in: senderView, animated: true)
             } else {
                 errorAlert(title: .localized("Failed to create log file"), description: nil)
             }
@@ -82,6 +107,9 @@ extension UIViewController {
         }
     }
 }
+
+// MARK: - UIDocumentInteractionControllerDelegate
+extension UIViewController: UIDocumentInteractionControllerDelegate {}
 
 extension NSDiffableDataSourceSnapshot {
     mutating func reloadItems(inSection section: SectionIdentifierType, rebuildWith newItems: [ItemIdentifierType]) {
@@ -94,7 +122,8 @@ extension UITableViewCell {
     func addChoiceButton(
         text: String,
         image: UIImage?,
-        buttonHandler: (UIButton) -> Void) {
+        buttonHandler: (UIButton) -> Void
+    ) {
         let button: UIButton
         let buttonTrailingAnchor: NSLayoutXAxisAnchor
         
@@ -105,7 +134,6 @@ extension UITableViewCell {
             conf.imagePadding = 5
             
             button = UIButton(configuration: conf)
-            
             buttonTrailingAnchor = contentView.trailingAnchor
         } else {
             button = UIButton(type: .system)
@@ -119,7 +147,6 @@ extension UITableViewCell {
         }
         
         button.translatesAutoresizingMaskIntoConstraints = false
-        
         contentView.addSubview(button)
         
         buttonHandler(button)
