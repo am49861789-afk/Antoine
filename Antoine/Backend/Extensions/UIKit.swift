@@ -56,13 +56,13 @@ extension UIViewController {
         present(alert, animated: true)
     }
 
+    // 单条导出：txt + 分享面板（排除 AirDrop）
     func export(entry: Entry, senderView: UIView, senderRect: CGRect) {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
             let serialized = try encoder.encode(CodableEntry(streamEntry: entry))
 
-            // 写成可读文本（JSON）
             let text = String(data: serialized, encoding: .utf8) ?? ""
             guard let textData = text.data(using: .utf8) else {
                 errorAlert(title: .localized("Error creating log file"), description: "Failed to encode text as UTF-8.")
@@ -71,25 +71,58 @@ extension UIViewController {
 
             let docsURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("Antoine Logs")
-
-            // if dir doesn't already exist
             try FileManager.default.createDirectory(at: docsURL, withIntermediateDirectories: true)
 
             let fileURL = docsURL
                 .appendingPathComponent(
                     "\(entry.process) (\(DateFormatter(dateFormat: "MMM d h:mm a").string(from: entry.timestamp)))"
                 )
-                .appendingPathExtension("txt")   // ✅ txt
+                .appendingPathExtension("txt")
 
             if FileManager.default.createFile(atPath: fileURL.path, contents: textData) {
-                // ✅ 普通系统分享面板（排除 AirDrop，避免闪退）
                 let vc = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-                vc.excludedActivityTypes = [.airDrop]   // ✅ 不要 AirDrop
+                vc.excludedActivityTypes = [.airDrop] // ✅ 禁用 AirDrop 防闪退
 
-                // iPad 需要锚点
                 vc.popoverPresentationController?.sourceView = senderView
                 vc.popoverPresentationController?.sourceRect = senderRect
+                present(vc, animated: true)
+            } else {
+                errorAlert(title: .localized("Failed to create log file"), description: nil)
+            }
+        } catch {
+            errorAlert(title: .localized("Error creating log file"), description: error.localizedDescription)
+        }
+    }
 
+    // ✅ 新增：导出全部日志（StreamEntry 列表）为一个 txt
+    func exportAll(entries: [StreamEntry], senderView: UIView, senderRect: CGRect) {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
+
+            let codableEntries = entries.map { CodableEntry(streamEntry: $0) }
+            let serialized = try encoder.encode(codableEntries)
+
+            let text = String(data: serialized, encoding: .utf8) ?? ""
+            guard let textData = text.data(using: .utf8) else {
+                errorAlert(title: .localized("Error creating log file"), description: "Failed to encode text as UTF-8.")
+                return
+            }
+
+            let docsURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Antoine Logs")
+            try FileManager.default.createDirectory(at: docsURL, withIntermediateDirectories: true)
+
+            let fileURL = docsURL
+                .appendingPathComponent("All Logs (\(DateFormatter(dateFormat: "MMM d h:mm a").string(from: Date())))")
+                .appendingPathExtension("txt")
+
+            if FileManager.default.createFile(atPath: fileURL.path, contents: textData) {
+                let vc = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+                vc.excludedActivityTypes = [.airDrop] // ✅ 禁用 AirDrop 防闪退
+
+                vc.popoverPresentationController?.sourceView = senderView
+                vc.popoverPresentationController?.sourceRect = senderRect
                 present(vc, animated: true)
             } else {
                 errorAlert(title: .localized("Failed to create log file"), description: nil)
