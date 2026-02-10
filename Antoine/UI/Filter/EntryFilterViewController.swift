@@ -91,6 +91,7 @@ class EntryFilterViewController: UIViewController {
             applyButton.widthAnchor.constraint(equalToConstant: 120.5),
             applyButton.heightAnchor.constraint(equalToConstant: 40.3)
         ])
+        view.addSubview(applyButton)
     }
     
     deinit {
@@ -134,8 +135,7 @@ extension EntryFilterViewController {
             sectionsAndItemsToAdd.append((.message, makeMessageFilterSectionItems()))
         }
         
-        // ✅ 关键：processID section 的显示条件改成 pid 或 bundleID 有值
-        if (filter?.pid != nil) || !(filter?.processBundleID?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) {
+        if filter?.pid != nil {
             sectionsAndItemsToAdd.append((.processID, makeProcessIDFilterSectionItems()))
         }
         
@@ -226,25 +226,15 @@ private extension EntryFilterViewController {
                 }
             }
         
-        // ✅ 这里不要再完全依赖 pid，bundleID 也算开启状态
         let filterByPID = __makeIsEnabledItemWithSwitch(
             name: .localized("Filter by Process ID"),
-            id: "FilterByProcessIDEnabled") { [unowned self] uiSwitch in
-                uiSwitch.isOn = (filter?.pid != nil) || !(filter?.processBundleID?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-                
+            id: "FilterByProcessIDEnabled") { uiSwitch in
                 uiSwitch.addAction(for: .valueChanged) { [unowned self] in
-                    var snapshot = dataSource.snapshot()
-                    if uiSwitch.isOn {
-                        // 开启：插入 section + items（但不强制给 pid 值）
-                        snapshot.insertSections([.processID], beforeSection: .allowedTypes)
-                        snapshot.appendItems(makeProcessIDFilterSectionItems(), toSection: .processID)
-                    } else {
-                        // 关闭：清空 pid + bundleID，并删 section
-                        filter?.pid = nil
-                        filter?.processBundleID = nil
-                        snapshot.deleteSections([.processID])
-                    }
-                    dataSource.apply(snapshot)
+                    sectionToggleClicked(uiSwitch: uiSwitch,
+                                         section: .processID,
+                                         writablePath: \.pid,
+                                         newPropertyBuilder: nil,
+                                         sectionRebuilder: makeProcessIDFilterSectionItems)
                 }
             }
         
@@ -318,16 +308,9 @@ private extension EntryFilterViewController {
         let pidTextFieldItem = Item(labelText: .localized("Process ID"), id: "PIDTextField") { [unowned self] cell in
             let textField = _makeGenericTextField(text: filter?.pid?.description, placeholder: .localized("Process ID"))
             textField.addAction(for: .editingDidEnd) { [unowned self] in
-                // 允许清空 pid
-                let raw = (textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                if raw.isEmpty {
-                    filter?.pid = nil
-                    return
-                }
-                guard let newPid = pid_t(raw) else {
+                guard let text = textField.text, let newPid = pid_t(text) else {
                     errorAlert(title: .localized("Process ID entered must be a valid number"), description: nil)
                     textField.text = nil
-                    filter?.pid = nil
                     return
                 }
                 
@@ -342,31 +325,7 @@ private extension EntryFilterViewController {
             ])
         }
         
-        // ✅ 新增：Bundle ID 输入（和 PID 一样，结束编辑就生效）
-        let bundleIDItem = Item(labelText: .localized("Bundle ID"), id: "BundleIDTextField") { [unowned self] cell in
-            let textField = _makeGenericTextField(
-                text: filter?.processBundleID,
-                placeholder: .localized("e.g. com.apple.Maps"),
-                type: .default
-            )
-            textField.autocorrectionType = .no
-            textField.autocapitalizationType = .none
-            textField.spellCheckingType = .no
-            
-            textField.addAction(for: .editingDidEnd) { [unowned self] in
-                let text = (textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                filter?.processBundleID = text.isEmpty ? nil : text
-            }
-            
-            cell.contentView.addSubview(textField)
-            
-            NSLayoutConstraint.activate([
-                textField.trailingAnchor.constraint(equalTo: cell.layoutMarginsGuide.trailingAnchor),
-                textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
-            ])
-        }
-        
-        return [pidTextFieldItem, bundleIDItem]
+        return [pidTextFieldItem]
     }
     
     func makeCategorySectionItems() -> [Item] {
@@ -379,6 +338,14 @@ private extension EntryFilterViewController {
             newModeSelected(section: .category,
                             sectionRebuilder: makeCategorySectionItems,
                             writableKeyPath: \.categoryFilter, newItem: newFilter)
+            /*
+             let existingText = filter?.categoryFilter?.text ?? ""
+             filter?.categoryFilter = TextFilter(text: existingText, mode: newMode)
+             
+             var snapshot = dataSource.snapshot()
+             snapshot.reloadItems(inSection: .category, rebuildWith: makeCategorySectionItems())
+             dataSource.apply(snapshot)
+             */
         }
     }
     
