@@ -81,7 +81,7 @@ extension UIViewController {
 
             if FileManager.default.createFile(atPath: fileURL.path, contents: textData) {
                 let vc = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-                vc.excludedActivityTypes = [.airDrop] // ✅ 禁用 AirDrop 防闪退
+            禁用 AirDrop 防闪退   // vc.excludedActivityTypes = [.airDrop] // ✅ 禁用 AirDrop 防闪退
 
                 vc.popoverPresentationController?.sourceView = senderView
                 vc.popoverPresentationController?.sourceRect = senderRect
