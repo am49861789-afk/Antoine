@@ -106,7 +106,11 @@ class StreamViewController: UIViewController {
         
         RunLoop.current.add(timer, forMode: .common)
         
-        navigationItem.rightBarButtonItem = makePreferencesBarButtonItem()
+        // ✅ 右上角：分享全部 + 设置
+        navigationItem.rightBarButtonItems = [
+            makeShareAllBarButtonItem(),
+            makePreferencesBarButtonItem()
+        ]
         navigationItem.leftBarButtonItem = makeOptionsEditBarButtonItem()
         
         splitViewController?.presentsWithGesture = false
@@ -267,6 +271,23 @@ extension StreamViewController {
                             style: .done, target: self,
                             action: #selector(clearAll)),
         ]
+    }
+    
+    // ✅ 新增：右上角“分享全部日志”
+    func makeShareAllBarButtonItem() -> UIBarButtonItem {
+        return UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
+                               style: .plain,
+                               target: self,
+                               action: #selector(shareAllLogs))
+    }
+    
+    @objc
+    func shareAllLogs() {
+        let allEntries = dataSource.snapshot().itemIdentifiers
+        let bounds: CGRect = view.bounds
+        exportAll(entries: allEntries,
+                  senderView: view,
+                  senderRect: CGRect(x: bounds.midX, y: bounds.midY, width: 0, height: 0))
     }
     
 	func makePreferencesBarButtonItem() -> UIBarButtonItem {
@@ -481,65 +502,3 @@ extension StreamViewController: ActivityStreamDelegate {
         }
     }
 }
-
-/*
-@available(iOS 14.0, *)
-extension StreamViewController: UISplitViewControllerDelegate {
-	func splitViewController(_ svc: UISplitViewController,
-							 willShow column: UISplitViewController.Column) {
-		if column == .secondary {
-			navigationItem.rightBarButtonItem = UIBarButtonItem(
-				image: UIImage(systemName: "xmark.circle"),
-				style: .plain, target: self, action: #selector(closeSecondarySplitViewController))
-		}
-	}
-	
-	@objc
-	func closeSecondarySplitViewController() {
-		splitViewController?.setViewController(self, for: .secondary)
-		splitViewController?.setViewController(nil, for: .primary)
-	}
-}
- */
-
-/*
-extension StreamViewController: UISearchBarDelegate {
-    
-    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-        print(#function)
-        guard let searchText = searchBar.text else { return }
-        let filterToUse: EntryFilter
-        let searchTextFilter = TextFilter(text: searchText, mode: .contains)
-        if let filter {
-            self.filter?.messageTextFilter = searchTextFilter
-            self.filter?.process = searchTextFilter
-            
-            filterToUse = filter
-        } else {
-            filterToUse = EntryFilter(messageTextFilter: searchTextFilter,
-                                 processFilter: searchTextFilter,
-                                 pid: nil)
-            self.filter = filterToUse
-        }
-        
-        // filter already existing items
-//        let filteredItems = dataSource.snapshot().itemIdentifiers.filter { entry in
-//            return !filterToUse.entryPassesFilter(entry)
-//        }
-//
-//        var snapshot = NSDiffableDataSourceSnapshot<Section, StreamEntry>()
-//        snapshot.appendSections([.main])
-//        snapshot.appendItems(filteredItems)
-//        dataSource.apply(snapshot)
-
-        logStream.cancel()
-        logStream.start(options: options)
-    }
-    
-    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        filter = nil
-        logStream.cancel()
-        logStream.start(options: options)
-    }
-}
-*/
