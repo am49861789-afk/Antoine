@@ -79,11 +79,12 @@ extension UIViewController {
                 .appendingPathComponent(
                     "\(entry.process) (\(DateFormatter(dateFormat: "MMM d h:mm a").string(from: entry.timestamp)))"
                 )
-                .appendingPathExtension("txt")   // ✅ 改为 txt
+                .appendingPathExtension("txt")   // ✅ txt
 
             if FileManager.default.createFile(atPath: fileURL.path, contents: textData) {
-                // ✅ 普通系统分享面板（不排除 AirDrop）
+                // ✅ 普通系统分享面板（排除 AirDrop，避免闪退）
                 let vc = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+                vc.excludedActivityTypes = [.airDrop]   // ✅ 不要 AirDrop
 
                 // iPad 需要锚点
                 vc.popoverPresentationController?.sourceView = senderView
