@@ -1,133 +1,133 @@
 /*
- Localizable.strings (Chinese, Traditional)
+ Localizable.strings (Chinese, Simplified)
  Antoine
- 
+
  Created by Serena on 12/02/2023.
  Localized by CydaIDev
  */
 
 /* Entry Filter View Controller (Navigation Title) */
-"Search Filter" = "搜尋濾器";
+"Search Filter" = "搜索过滤器";
 
 /* Entry Filter View Controller (Section Titles) */
-"Enabled" = "啟用";
-"Process ID" = "程序ID(Process ID)";
-"Process Name" = "程序名稱";
-"Category" = "類別";
-"Subsystem" = "子系統(Subsystem)";
-"Allowed Types" = "允許的類型";
+"Enabled" = "启用";
+"Process ID" = "进程ID（Process ID）";
+"Process Name" = "进程名称";
+"Category" = "类别";
+"Subsystem" = "子系统（Subsystem）";
+"Allowed Types" = "允许的类型";
 
 /* Entry Filter View Controller (isEnabled Section Names) */
-"Filter by Message Text" = "以訊息文字過濾";
-"Filter by Process ID" = "以程序ID(Process ID)過濾";
-"Filter by Process Name" = "以程序名稱過濾";
-"Filter by Category" = "以類別過濾";
-"Filter by Subsystem" = "以子系統(Subsystem)過濾";
+"Filter by Message Text" = "按消息文本过滤";
+"Filter by Process ID" = "按进程ID（Process ID）过滤";
+"Filter by Process Name" = "按进程名称过滤";
+"Filter by Category" = "按类别过滤";
+"Filter by Subsystem" = "按子系统（Subsystem）过滤";
 
 /* Entry Filter View Controller (UITextView Placeholders) */
-"Message text filter.." = "在此輸入欲過濾的訊息文字...";
-"Subsystem filter.." = "在此輸入欲過濾的子系統...";
-"Category filter.." = "在此輸入欲過濾的類別...";
-"Process name filter.." = "在此輸入欲過濾的程序名稱...";
+"Message text filter.." = "在此输入要过滤的消息文本...";
+"Subsystem filter.." = "在此输入要过滤的子系统...";
+"Category filter.." = "在此输入要过滤的类别...";
+"Process name filter.." = "在此输入要过滤的进程名称...";
 
 /* Entry Filter View Controller (Other) */
-"Apply" = "套用";
-"Mode" = "過濾模式";
-"Process ID entered must be a valid number" = "程序ID必須是個有效的數值";
+"Apply" = "应用";
+"Mode" = "过滤模式";
+"Process ID entered must be a valid number" = "进程ID必须是有效的数字";
 
 /* Stream View Controller */
-"Stream" = "實時串流";
+"Stream" = "实时流";
 
 /* Preferences View Controller */
-"Preferences" = "設置";
-"Reset" = "重置顏色設定";
-"Refresh Rate" = "串流更新頻率";
-"Type Colors" = "類型(Type)顏色";
-"RefreshRateExplaination" = "此為實時串流更新以生成紀錄(Log)所需的秒數，範例：假設您設為1.00，則實時串流會每1.00秒生成新的紀錄。";
+"Preferences" = "设置";
+"Reset" = "重置颜色设置";
+"Refresh Rate" = "流更新频率";
+"Type Colors" = "类型（Type）颜色";
+"RefreshRateExplaination" = "这是实时流更新生成日志所需的秒数。例如：如果你设置为 1.00，则实时流每 1.00 秒生成一条新日志。";
 
 /* Credits */
-"Credits" = "鳴謝與貢獻";
+"Credits" = "鸣谢与贡献";
 
 /* Entry View Controller (Sections) */
-"Message" = "訊息";
-"Process" = "程序";
-"Sender"  = "呼叫者(Sender)";
+"Message" = "消息";
+"Process" = "进程";
+"Sender"  = "调用者（Sender）";
 "Date"    = "日期";
 "Other"   = "其他";
-"Category & Subsystem" = "類別與子系統";
+"Category & Subsystem" = "类别与子系统";
 
 /* Entry View Controller (Primary Text) */
-"Name" = "名稱";
+"Name" = "名称";
 "ID" = "ID";
-"Path" = "路徑";
-"Timestamp (UNIX Time)" = "時間戳記(UNIX Time)";
-"Message Type" = "訊息類型";
-"Event Type" = "事件類型";
-"Activity ID" = "活動ID(Activity ID)";
-"Trace ID" = "追溯ID(Trace ID)";
-"Thread ID" = "線程ID(Thread ID)";
+"Path" = "路径";
+"Timestamp (UNIX Time)" = "时间戳（UNIX 时间）";
+"Message Type" = "消息类型";
+"Event Type" = "事件类型";
+"Activity ID" = "活动ID（Activity ID）";
+"Trace ID" = "追踪ID（Trace ID）";
+"Thread ID" = "线程ID（Thread ID）";
 
 /* Entry View Controller (Misc) */
-"Copy" = "複製"; /* copying item to clipboard */
-"Open in %@" = "在%@中開啟";
-"Share Log" = "Share Log";
-"%@ Logs" = "%@ Logs";
+"Copy" = "复制"; /* copying item to clipboard */
+"Open in %@" = "在%@中打开";
+"Share Log" = "分享日志";
+"%@ Logs" = "%@ 条日志";
 
 /* MessageEvent display texts */
-"Default" = "預設";
-"Debug" = "偵錯(Debug)";
-"Info" = "資訊";
-"Fault" = "故障(Fault)";
-"Error" = "錯誤(Error)";
+"Default" = "默认";
+"Debug" = "调试（Debug）";
+"Info" = "信息（Info）";
+"Fault" = "故障（Fault）";
+"Error" = "错误（Error）";
 
 /* TextFilter mode descriptions */
-"Equal To" = "等同於";
-"Not Equal To" = "不等同於";
+"Equal To" = "等于";
+"Not Equal To" = "不等于";
 /* text contains another text */
 "Contains" = "包含";
 /* text *doesn't* contain other text in it */
-"Doesn't Contain" = "沒有包含";
+"Doesn't Contain" = "不包含";
 /* text starts with another text */
-"Starts With" = "以...為開頭";
+"Starts With" = "以...开头";
 /* text ends with another text */
-"Ends With" = "以...為結尾";
+"Ends With" = "以...结尾";
 
 /* Background Mode (Application UI) */
-"Background Mode" = "背景運行模式";
-"Collect logs in background" = "在背景持續收集紀錄";
-"Stay active in background for.." = "在背景保持運行...";
-"Keep collecting logs in the background" = "持續在背景收集紀錄";
-"For background mode, please authorize the app with Always-On Location Services" = "為了能順利在背景運行，請授權Antoine的定位服務為「永遠」或「使用App期間」。";
-"Until manually disabled" = "直到手動關閉應用程式";
+"Background Mode" = "后台模式";
+"Collect logs in background" = "在后台持续收集日志";
+"Stay active in background for.." = "在后台保持运行...";
+"Keep collecting logs in the background" = "持续在后台收集日志";
+"For background mode, please authorize the app with Always-On Location Services" = "为了正常在后台运行，请将 Antoine 的定位权限授权为“始终”或“使用 App 期间”。";
+"Until manually disabled" = "直到手动关闭";
 
 /* Background Mode (User Notifications) */
-"Stopped" = "暫停";
-"Pause" = "暫停";
-"Couldn't start background mode" = "無法啟用背景模式";
-"Antoine needs Always-On Location Authorization in order to enable Background Mode" = "為了能順利在背景運行，請授權Antoine的定位服務為「永遠」或「使用App期間」。";
-"Antoine is now collecting logs in the background" = "Antoine正在背景收集紀錄中";
-"App has stopped collecting logs in background" = "Antoine已停止在背景收集紀錄";
+"Stopped" = "已停止";
+"Pause" = "暂停";
+"Couldn't start background mode" = "无法启动后台模式";
+"Antoine needs Always-On Location Authorization in order to enable Background Mode" = "要启用后台模式，Antoine 需要“始终”定位权限。";
+"Antoine is now collecting logs in the background" = "Antoine 正在后台收集日志";
+"App has stopped collecting logs in background" = "Antoine 已停止在后台收集日志";
 
 /*
  NSLocationAlwaysAndWhenInUseUsageDescription
  This is here because localizers will prob forget to go into InfoPlist.strings,
  so i'll just manually copy paste the localization here to the InfoPlist.strings
  */
-"NSLocationAlwaysAndWhenInUseUsageDescription" = "為了能順利在背景運行，請授權Antoine的定位服務為「永遠」或「使用App期間」。";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "为了正常在后台运行，请将 Antoine 的定位权限授权为“始终”或“使用 App 期间”。";
 
 /* Stream Options */
-"Stream Options" = "實時串流顯示選項";
-"All" = "選擇全部";
-"Show Messages before Stream was started" = "在實時串流開始前顯示訊息";
-"Don't include sensitive data" = "不要包含敏感性資料";
-"Include Debug Messages" = "包含偵錯(Debug)訊息";
-"Include Info Messages" = "包含資訊(Info)訊息";
-"Precise Timestamps" = "精確的時間戳記";
+"Stream Options" = "实时流选项";
+"All" = "全选";
+"Show Messages before Stream was started" = "显示开始实时流之前的消息";
+"Don't include sensitive data" = "不包含敏感数据";
+"Include Debug Messages" = "包含调试（Debug）消息";
+"Include Info Messages" = "包含信息（Info）消息";
+"Precise Timestamps" = "精确时间戳";
 
 /* PreferredLanguageViewController */
-"Language" = "語言";
-"Restart Application for changes to fully apply" = "請重新開啟Antoine以完整套用更動";
-"Use System Language" = "使用系統語言";
+"Language" = "语言";
+"Restart Application for changes to fully apply" = "请重新打开 Antoine 以完全应用更改";
+"Use System Language" = "使用系统语言";
 
 /* MenuItems UIAlertController items */
 "Cancel" = "取消";
