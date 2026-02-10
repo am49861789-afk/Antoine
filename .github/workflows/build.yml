@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Install needed tools
         run: |
@@ -37,13 +37,13 @@ jobs:
           make
           
       - name: Upload TrollStore .tipa
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v4
         with:
           name: AntoineTrollstore.tipa
           path: ${{ github.workspace }}/build/AntoineTrollstore.tipa
           
       - name: Upload deb for Jailbroken devices
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v4
         with:
           name: Antoine
           path: ${{ github.workspace }}/build/Antoine.deb
