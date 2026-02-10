@@ -30,7 +30,7 @@ jobs:
           
       - name: Select Xcode version (16)
         run: |
-          sudo xcode-select --switch /Applications/Xcode_16.app
+          sudo xcode-select --switch /Applications/Xcode_15.app
           
       - name: Build & Sign Application
         run: |
