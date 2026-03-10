@@ -38,7 +38,7 @@ class StreamViewController: UIViewController {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
         sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = .localized("Search Logs...")
+        sc.searchBar.placeholder = .localized("日志搜索...")
         return sc
     }()
     
@@ -48,19 +48,15 @@ class StreamViewController: UIViewController {
         }
     }
     
-    // Keep this bar button item here so we can enable it and disable it when we want to
-    // without having to rebuild all toolbar items
     lazy var scrollDownBarButtonItem = {
         let item = UIBarButtonItem(image: UIImage(systemName: "chevron.down"),
                                    style: .plain,
                                    target: self,
                                    action: #selector(scrollAllTheWayDown))
-        item.isEnabled = false // false by default
+        item.isEnabled = false
         return item
     }()
     
-    // Similar reason to keep this as a variable as the `scrollDownBarButtonItem`
-    // But for this, it's so that we can update the image of the item without reloading the entire bar
     lazy var playPauseButtonItem = {
         return UIBarButtonItem(image: UIImage(systemName: "pause.fill"),
                                style: .plain, target: self,
@@ -83,7 +79,6 @@ class StreamViewController: UIViewController {
         return stream
     }()
     
-    /// whether or not to automatically scroll to the bottom every time a batch of entries is recieved
     var automaticallyScrollToBottom: Bool = true
     
     let numberFormatter: NumberFormatter = {
@@ -93,11 +88,11 @@ class StreamViewController: UIViewController {
         return fmt
     }()
     
-    /// this batch is used for performance reasons,
-    /// entries are temporarily added to this batch array,
-    /// then, once the timer runs, the items from it are added and the batch array
-    /// is emptied
+    /// 缓存新进来的日志
     var batch: [StreamEntry] = []
+    
+    // ✅ 新增：互斥锁，用于保护 batch 数组的多线程读写安全
+    let batchLock = NSLock()
     
     lazy var timer = makeTimer()
     
@@ -109,7 +104,7 @@ class StreamViewController: UIViewController {
         let streamTitleLabel = UILabel(text: .localized("Stream"))
         streamTitleLabel.textAlignment = .center
         streamTitleLabel.font = (navigationController?.navigationBar.value(forKey: "_defaultTitleFont") as? UIFont) ?? .boldSystemFont(ofSize: 17)
-        amountOfItemsLabel = UILabel() // no text yet till we actually get an item
+        amountOfItemsLabel = UILabel()
         amountOfItemsLabel.font = .preferredFont(forTextStyle: .caption2)
         amountOfItemsLabel.textAlignment = .center
         
@@ -121,13 +116,8 @@ class StreamViewController: UIViewController {
         makeDataSource()
         setToolbarItems()
         
-        NSLog("And we all wanna be happy..")
-        NSLog("DO I LOOK HAPPY?")
-        NSLog("DO I LOOK HAPPY TO YOU?")
-        
         RunLoop.current.add(timer, forMode: .common)
         
-        // 右上角：分享全部 + 设置
         navigationItem.rightBarButtonItems = [
             makeShareAllBarButtonItem(),
             makePreferencesBarButtonItem()
@@ -137,7 +127,6 @@ class StreamViewController: UIViewController {
         splitViewController?.presentsWithGesture = false
         splitViewController?.preferredDisplayMode = .allVisible
         
-        // register for when the timer interval changes
         NotificationCenter.default.addObserver(forName: .streamTimerIntervalDidChange,
                                                object: nil,
                                                queue: nil) { notif in
@@ -145,7 +134,6 @@ class StreamViewController: UIViewController {
                 fatalError("SHOULD NOT HAVE GOTTEN HERE!! SANITY CHECK, NOW!")
             }
             
-            print("newTimerInterval: \(newTimerInterval)")
             self.timer.invalidate()
             self.timer = self.makeTimer(interval: newTimerInterval)
             RunLoop.main.add(self.timer, forMode: .common)
@@ -153,26 +141,19 @@ class StreamViewController: UIViewController {
         
         ActivityStream.enableShowPrivateData(Preferences.showPrivateData)
         
-        // 启用我们添加的 searchController
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
-        
-        // 确保弹出详情页时，搜索框不会发生上下文错乱
         self.definesPresentationContext = true
     }
         
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        // 只在 App 刚打开进入此页面时执行判断
         if !hasAppearedOnce {
             hasAppearedOnce = true
-            
-            // 如果用户开启了“自动抓取”，则开始流
             if Preferences.autoStartStreaming {
                 logStream.start(options: options)
             } else {
-                // 如果未开启，将右上角的按钮图标重置为“播放”图标
                 playPauseButtonItem.image = UIImage(systemName: "play.fill")
             }
         }
@@ -183,16 +164,11 @@ class StreamViewController: UIViewController {
         present(UINavigationController(rootViewController: PreferencesViewController(nibName: nil, bundle: nil)), animated: true)
     }
     
-    // override present(_:, animated:) so that when we want to present a view controller
-    // and one is already present,
-    // dismiss the already-presented view controller, then show our view controller
     override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
         if let presented = presentedViewController {
-            // 修复：如果当前处于搜索激活状态 (UISearchController)，不要 dismiss 关掉它
             if presented is UISearchController {
                 presented.present(viewControllerToPresent, animated: flag, completion: completion)
             } else {
-                // 原有逻辑：如果是其他普通弹窗，先关闭旧的再弹出新的
                 presented.dismiss(animated: flag) {
                     super.present(viewControllerToPresent, animated: flag, completion: completion)
                 }
@@ -208,7 +184,6 @@ class StreamViewController: UIViewController {
 }
 
 extension StreamViewController: EntryFilterViewControllerDelegate {
-    // MARK: - Filter stuff
     @objc
     func presentFilterVC() {
         let filterVC = EntryFilterViewController(filter: filter)
@@ -231,16 +206,13 @@ extension StreamViewController {
         automaticallyScrollToBottom = true
     }
     
-    // MARK: - Bar Button items
     @objc func stopOrStartStream() {
         let isStreaming = logStream.isStreaming
         playPauseButtonItem.image = UIImage(systemName: isStreaming ? "play.fill" : "pause.fill")
         isStreaming ? logStream.cancel() : logStream.start(options: options)
     }
     
-    /// Converts all ``TitledStreamOption`` instances to MenuItems
     private func titledStreamOptionsToMenuItems() -> [MenuItem] {
-        // Stream option set
         return TitledStreamOption.all.map { opt in
             return MenuItem(title: opt.title, image: nil, isEnabled: options.contains(opt.option)) { [self] in
                 options.removeOrInsertBasedOnExistance(opt.option)
@@ -252,26 +224,19 @@ extension StreamViewController {
     private func makeToggleShowPrivateMenuItem() -> MenuItem {
         return MenuItem(title: .localized("Show Private data in most Logs (gets rid of <private>)"), image: nil, isEnabled: Preferences.showPrivateData) { [self] in
             var newValue = Preferences.showPrivateData
-            
-            // toggle bc the user just did so
             newValue.toggle()
-            
             ActivityStream.enableShowPrivateData(newValue)
             Preferences.showPrivateData = newValue
-            
-            // Reload bar
             navigationItem.leftBarButtonItem = makeOptionsEditBarButtonItem()
         }
     }
     
-    /// Presents a UIAlertController for adding / removing stream options
     @objc
     private func presentActionSheetForStreanOptions() {
         let alert = UIAlertController(title: .localized("Stream Options"), message: nil, preferredStyle: .actionSheet)
         for item in titledStreamOptionsToMenuItems() {
             alert.addAction(item.uiAlertAction)
         }
-        
         alert.addAction(UIAlertAction(title: .localized("Cancel"), style: .cancel))
         present(alert, animated: true)
     }
@@ -279,13 +244,11 @@ extension StreamViewController {
     func makeOptionsEditBarButtonItem() -> UIBarButtonItem {
         if #available(iOS 14.0, *) {
             let actions = titledStreamOptionsToMenuItems()
-            
             return UIBarButtonItem(
                 image: UIImage(systemName: "list.bullet.rectangle"),
                 menu: MenuItem.makeMenu(title: .localized("Stream Options"), for: actions)
             )
         }
-        
         return UIBarButtonItem(image: UIImage(systemName: "ellipsis"), style: .plain, target: self, action: #selector(presentActionSheetForStreanOptions))
     }
     
@@ -302,10 +265,9 @@ extension StreamViewController {
                             action: #selector(clearAll))
         ]
         
-        // 动态：当进入搜索状态时，在低栏多显示一个分享当前搜索结果的按钮
         if searchController.isActive {
             items.append(.space(.flexible))
-            items.append(UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up.circle"), // 带圈的分享图标，区分右上角
+            items.append(UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up.circle"),
                                          style: .plain, target: self,
                                          action: #selector(shareSearchedLogs)))
         }
@@ -322,7 +284,6 @@ extension StreamViewController {
     
     @objc
     func shareAllLogs() {
-        // 右上角默认按钮：不论当前是否在搜索，强制分享全部已抓取日志
         let bounds: CGRect = view.bounds
         exportAll(entries: allEntries,
                   senderView: view,
@@ -331,7 +292,6 @@ extension StreamViewController {
     
     @objc
     func shareSearchedLogs() {
-        // 低栏搜索专属分享按钮：只分享当前搜索过滤出来的日志
         let searchedEntries = dataSource.snapshot().itemIdentifiers
         let bounds: CGRect = view.bounds
         exportAll(entries: searchedEntries,
@@ -351,8 +311,13 @@ extension StreamViewController {
     
     @objc
     func clearAll() {
-        // 清空全局日志缓存
         allEntries.removeAll()
+        
+        // 清空时也加锁，防止数据混乱
+        batchLock.lock()
+        batch.removeAll()
+        batchLock.unlock()
+        
         var snapshot: NSDiffableDataSourceSnapshot<Section, StreamEntry> = .init()
         snapshot.appendSections([.main])
         dataSourceApply(snapshot: snapshot)
@@ -379,16 +344,20 @@ extension StreamViewController {
     }
     
     func addBatch() {
-        guard !batch.isEmpty else { return }
+        // ✅ 修改：从缓存池安全地提取出这一批次的所有日志，并立刻清空原缓存池
+        batchLock.lock()
+        let currentBatch = batch
+        batch = []
+        batchLock.unlock()
         
-        // 1. 先将新进来的日志存入全局数组
-        allEntries.append(contentsOf: batch)
+        guard !currentBatch.isEmpty else { return }
+        
+        allEntries.append(contentsOf: currentBatch)
         
         var snapshot = dataSource.snapshot()
         
-        // 2. 如果当前正在搜索，就将新的批次过滤后追加；否则全部追加
         if isSearching, let searchText = searchController.searchBar.text?.lowercased() {
-            let filteredBatch = batch.filter { entry in
+            let filteredBatch = currentBatch.filter { entry in
                 entry.eventMessage.lowercased().contains(searchText) ||
                 entry.process.lowercased().contains(searchText) ||
                 (entry.subsystem?.lowercased().contains(searchText) ?? false) ||
@@ -398,16 +367,14 @@ extension StreamViewController {
                 snapshot.appendItems(filteredBatch)
             }
         } else {
-            snapshot.appendItems(batch)
+            snapshot.appendItems(currentBatch)
         }
         
-        batch = []
         dataSourceApply(snapshot: snapshot)
     }
 }
 
 extension StreamViewController: UICollectionViewDelegate {
-    // MARK: UICollectionView management, setting up bar items, etc
     func setupCollectionView() {
         self.collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
         
@@ -415,7 +382,6 @@ extension StreamViewController: UICollectionViewDelegate {
         view.addSubview(collectionView)
         
         collectionView.constraintCompletely(to: view)
-        
         collectionView.backgroundColor = .secondarySystemBackground
         collectionView.delegate = self
         
@@ -477,7 +443,6 @@ extension StreamViewController: UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        
         presentEntryViewController(for: item)
     }
     
@@ -532,7 +497,6 @@ extension StreamViewController: UICollectionViewDelegate {
                                           children: [copyName, copyMessage, copyPath])
             let shareAction = UIAction(title: .localized("Share Log"), image: UIImage(systemName: "square.and.arrow.up")) { [unowned self] _ in
                 let bounds: CGRect = view.bounds
-                
                 export(entry: entry, senderView: view, senderRect: CGRect(x: bounds.midX, y: bounds.midY, width: 0, height: 0))
             }
             
@@ -548,7 +512,6 @@ extension StreamViewController: UICollectionViewDelegate {
 
 extension StreamViewController: ActivityStreamDelegate {
     func activityStream(streamEventDidChangeTo newEvent: StreamEvent?) {
-        // update the play/pause item image
         DispatchQueue.main.async {
             self.playPauseButtonItem.image = UIImage(systemName: self.logStream.isStreaming ? "pause.fill" : "play.fill")
         }
@@ -557,7 +520,10 @@ extension StreamViewController: ActivityStreamDelegate {
     func activityStream(didRecieveEntry entryPointer: os_activity_stream_entry_t, error: CInt) {
         let entry = StreamEntry(entry: entryPointer)
         if filter?.entryPassesFilter(entry) ?? true {
+            // ✅ 修改：使用互斥锁来保证数组追加的绝对安全。不阻塞主线程，也不丢日志！
+            batchLock.lock()
             batch.append(entry)
+            batchLock.unlock()
         }
     }
 }
@@ -569,7 +535,6 @@ extension StreamViewController: UISearchResultsUpdating {
         snapshot.appendSections([.main])
         
         if isSearching, let searchText = searchController.searchBar.text?.lowercased() {
-            // 对所有记录进行过滤
             let filtered = allEntries.filter { entry in
                 entry.eventMessage.lowercased().contains(searchText) ||
                 entry.process.lowercased().contains(searchText) ||
@@ -578,14 +543,10 @@ extension StreamViewController: UISearchResultsUpdating {
             }
             snapshot.appendItems(filtered)
         } else {
-            // 没有搜索文本时显示全部记录
             snapshot.appendItems(allEntries)
         }
         
-        // 重新应用快照
         dataSourceApply(snapshot: snapshot)
-        
-        // 每次进入/退出搜索状态时，动态刷新底部工具栏（添加/移除搜索专属分享按钮）
         setToolbarItems()
     }
 }
