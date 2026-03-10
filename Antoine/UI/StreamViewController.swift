@@ -21,6 +21,24 @@ class StreamViewController: UIViewController {
     var collectionView: UICollectionView!
     var amountOfItemsLabel: UILabel!
     var currentlyShownEntryViewController: EntryViewController?
+    
+    // ✅ 新增：保存抓取到的所有日志，用于全局搜索
+    var allEntries: [StreamEntry] = []
+    
+    // ✅ 新增：判断当前是否正在搜索
+    var isSearching: Bool {
+        return searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
+    }
+    
+    // ✅ 新增：搜索控制器配置
+    lazy var searchController: UISearchController = {
+        let sc = UISearchController(searchResultsController: nil)
+        sc.searchResultsUpdater = self
+        sc.obscuresBackgroundDuringPresentation = false
+        sc.searchBar.placeholder = .localized("Search Logs...") // 如果没本地化可直接写 "Search Logs..."
+        return sc
+    }()
+    
     var filter: EntryFilter? = Preferences.entryFilter {
         didSet {
             Preferences.entryFilter = filter
@@ -106,7 +124,7 @@ class StreamViewController: UIViewController {
         
         RunLoop.current.add(timer, forMode: .common)
         
-        // ✅ 右上角：分享全部 + 设置
+        // 右上角：分享全部 + 设置
         navigationItem.rightBarButtonItems = [
             makeShareAllBarButtonItem(),
             makePreferencesBarButtonItem()
@@ -132,19 +150,9 @@ class StreamViewController: UIViewController {
         
         ActivityStream.enableShowPrivateData(Preferences.showPrivateData)
         
-        /*
-         hmmm...
-		if #available(iOS 14, *) {
-			splitViewController?.delegate = self
-		}
-         */
-        
-        /*
-        let searchController = UISearchController()
-        searchController.searchBar.delegate = self
+        // ✅ 启用我们添加的 searchController
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
-         */
     }
         
     override func viewDidAppear(_ animated: Bool) {
@@ -213,7 +221,6 @@ extension StreamViewController {
         return TitledStreamOption.all.map { opt in
             return MenuItem(title: opt.title, image: nil, isEnabled: options.contains(opt.option)) { [self] in
                 options.removeOrInsertBasedOnExistance(opt.option)
-                
                 navigationItem.leftBarButtonItem = makeOptionsEditBarButtonItem()
             }
         } + [makeToggleShowPrivateMenuItem()]
@@ -273,7 +280,6 @@ extension StreamViewController {
         ]
     }
     
-    // ✅ 新增：右上角“分享全部日志”
     func makeShareAllBarButtonItem() -> UIBarButtonItem {
         return UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
                                style: .plain,
@@ -290,25 +296,26 @@ extension StreamViewController {
                   senderRect: CGRect(x: bounds.midX, y: bounds.midY, width: 0, height: 0))
     }
     
-	func makePreferencesBarButtonItem() -> UIBarButtonItem {
-		return UIBarButtonItem(image: UIImage(systemName: "gear"),
-						style: .plain, target: self,
-						action: #selector(presentSettingsVC))
-	}
-	
+    func makePreferencesBarButtonItem() -> UIBarButtonItem {
+        return UIBarButtonItem(image: UIImage(systemName: "gear"),
+                        style: .plain, target: self,
+                        action: #selector(presentSettingsVC))
+    }
+    
     func setToolbarItems() {
         setToolbarItems(makeToolbarItems(), animated: true)
     }
     
     @objc
     func clearAll() {
+        // ✅ 清空全局日志缓存
+        allEntries.removeAll()
         var snapshot: NSDiffableDataSourceSnapshot<Section, StreamEntry> = .init()
         snapshot.appendSections([.main])
         dataSourceApply(snapshot: snapshot)
     }
-	
+    
     func dataSourceApply(snapshot: NSDiffableDataSourceSnapshot<Section, StreamEntry>) {
-        
         dataSource.apply(snapshot) {
             self.amountOfItemsLabel.text = .localized("%@ Logs", arguments: self.numberFormatter.string(from: snapshot.numberOfItems as NSNumber) ?? snapshot.numberOfItems.description)
         }
@@ -317,28 +324,47 @@ extension StreamViewController {
     func makeTimer(interval: TimeInterval = Preferences.streamVCTimerInterval) -> Timer {
         return Timer(timeInterval: interval, repeats: true) { [self] _ in
             // if we're paused,
-			// or collecting logs in background
-			// let's stop here, keep the batch for when we do want
-			// to display it
-			guard logStream.isStreaming,
-					UIApplication.shared.applicationState != .background else {
-				return
-			}
-			
+            // or collecting logs in background
+            // let's stop here, keep the batch for when we do want
+            // to display it
+            guard logStream.isStreaming,
+                    UIApplication.shared.applicationState != .background else {
+                return
+            }
+            
             addBatch()
             if automaticallyScrollToBottom {
                 scrollAllTheWayDown()
             }
         }
     }
-	
-	func addBatch() {
-		var snapshot = dataSource.snapshot()
-		snapshot.appendItems(batch)
-		batch = []
-		//NSLog("Timer closure")
+    
+    func addBatch() {
+        guard !batch.isEmpty else { return }
+        
+        // ✅ 1. 先将新进来的日志存入全局数组
+        allEntries.append(contentsOf: batch)
+        
+        var snapshot = dataSource.snapshot()
+        
+        // ✅ 2. 如果当前正在搜索，就将新的批次过滤后追加；否则全部追加
+        if isSearching, let searchText = searchController.searchBar.text?.lowercased() {
+            let filteredBatch = batch.filter { entry in
+                entry.eventMessage.lowercased().contains(searchText) ||
+                entry.process.lowercased().contains(searchText) ||
+                (entry.subsystem?.lowercased().contains(searchText) ?? false) ||
+                (entry.category?.lowercased().contains(searchText) ?? false)
+            }
+            if !filteredBatch.isEmpty {
+                snapshot.appendItems(filteredBatch)
+            }
+        } else {
+            snapshot.appendItems(batch)
+        }
+        
+        batch = []
         dataSourceApply(snapshot: snapshot)
-	}
+    }
 }
 
 extension StreamViewController: UICollectionViewDelegate {
@@ -370,7 +396,6 @@ extension StreamViewController: UICollectionViewDelegate {
         group.interItemSpacing = .fixed(spacing)
         
         let section = NSCollectionLayoutSection(group: group)
-		//section.orthogonalScrollingBehavior = .groupPaging
         section.interGroupSpacing = spacing
         section.contentInsets = NSDirectionalEdgeInsets(top: 0,
                                                         leading: spacing,
@@ -474,7 +499,7 @@ extension StreamViewController: UICollectionViewDelegate {
                 export(entry: entry, senderView: view, senderRect: CGRect(x: bounds.midX, y: bounds.midY, width: 0, height: 0))
             }
             
-			return UIMenu(children: [embeddedCopyMenu, shareAction])
+            return UIMenu(children: [embeddedCopyMenu, shareAction])
         })
     }
     
@@ -500,5 +525,30 @@ extension StreamViewController: ActivityStreamDelegate {
         if filter?.entryPassesFilter(entry) ?? true {
             batch.append(entry)
         }
+    }
+}
+
+// ✅ 新增：遵循 UISearchResultsUpdating 协议处理搜索回调
+extension StreamViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        var snapshot = NSDiffableDataSourceSnapshot<Section, StreamEntry>()
+        snapshot.appendSections([.main])
+        
+        if isSearching, let searchText = searchController.searchBar.text?.lowercased() {
+            // 对所有记录进行过滤
+            let filtered = allEntries.filter { entry in
+                entry.eventMessage.lowercased().contains(searchText) ||
+                entry.process.lowercased().contains(searchText) ||
+                (entry.subsystem?.lowercased().contains(searchText) ?? false) ||
+                (entry.category?.lowercased().contains(searchText) ?? false)
+            }
+            snapshot.appendItems(filtered)
+        } else {
+            // 没有搜索文本时显示全部记录
+            snapshot.appendItems(allEntries)
+        }
+        
+        // 重新应用快照
+        dataSourceApply(snapshot: snapshot)
     }
 }
