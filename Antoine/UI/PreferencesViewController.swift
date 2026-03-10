@@ -24,6 +24,7 @@ class PreferencesViewController: UIViewController {
     
     func setupViews() {
         self.tableView = UITableView(frame: .zero, style: .insetGrouped)
+        
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.dataSource = self
         tableView.delegate = self
@@ -39,16 +40,17 @@ class PreferencesViewController: UIViewController {
 
 extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int {
-        return 5
+        [span_5](start_span)[span_6](start_span)// ✅ 修改：原来是5个分区，现在加了启动设置，变成6个[span_5](end_span)[span_6](end_span)
+        return 6
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
-        case 0, 3, 4:
+        case 0, 1, 4, 5: // 0(刷新率), 1(启动设置), 4(鸣谢), 5(语言)
             return 1
-        case 1:
+        case 2:          // 2是后台模式
             return Preferences.backgroundMode == nil ? 1 : 2
-        case 2:
+        case 3:          // 3是颜色设置
             return MessageEvent.allCases.count + 1
         default:
             fatalError("How did we get here?")
@@ -59,7 +61,20 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
         switch (indexPath.section, indexPath.row) {
         case (0, 0):
             return makeTimerIntervalCellWithSlider()
+            
+        [span_7](start_span)// ✅ 新增：第1个分区 (自动启动日志抓取)[span_7](end_span)
         case (1, 0):
+            let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
+            cell.textLabel?.text = "每次打开时自动抓取" // 也可以写为 .localized("Auto Start on Launch") 如果配置了多语言
+            let uiSwitch = UISwitch()
+            uiSwitch.isOn = Preferences.autoStartStreaming
+            uiSwitch.addAction(for: .valueChanged) {
+                Preferences.autoStartStreaming = uiSwitch.isOn
+            }
+            cell.accessoryView = uiSwitch
+            return cell
+            
+        case (2, 0):
             let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
             cell.textLabel?.text = .localized("Collect logs in background")
             cell.textLabel?.numberOfLines = 0
@@ -71,18 +86,18 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
                 
                 if uiSwitch.isOn {
                     Preferences.backgroundMode = .backgroundTime(60) // minute by default
-                    tableView.insertRows(at: [IndexPath(row: 1, section: 1)], with: .automatic)
+                    tableView.insertRows(at: [IndexPath(row: 1, section: 2)], with: .automatic)
                 } else {
                     Preferences.backgroundMode = nil
-                    tableView.deleteRows(at: [IndexPath(row: 1, section: 1)], with: .automatic)
+                    tableView.deleteRows(at: [IndexPath(row: 1, section: 2)], with: .automatic)
                 }
             }
             
             cell.accessoryView = uiSwitch
             return cell
-        case (1, 1):
-            let cell = UITableViewCell()
             
+        case (2, 1):
+            let cell = UITableViewCell()
             let label = UILabel()
             label.text = .localized("Stay active in background for..")
             label.numberOfLines = 0
@@ -94,7 +109,8 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
             
             stackView.constraintCompletely(to: cell.contentView.layoutMarginsGuide)
             return cell
-        case (2, _):
+            
+        case (3, _):
             let cell = UITableViewCell()
             if indexPath.row == MessageEvent.allCases.count { // Reset button
                 cell.textLabel?.text = .localized("Reset")
@@ -104,18 +120,20 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
                 cell.textLabel?.text = item.displayText
                 cell.accessoryView = colorCircleView(forColor: item.displayColor)
             }
-            
             return cell
-        case (3, 0):
+            
+        case (4, 0):
             let cell = UITableViewCell()
             cell.textLabel?.text = .localized("Credits")
             cell.accessoryType = .disclosureIndicator
             return cell
-        case (4, 0):
+            
+        case (5, 0):
             let cell = UITableViewCell()
             cell.textLabel?.text = .localized("Language")
             cell.accessoryType = .disclosureIndicator
             return cell
+            
         default:
             fatalError("What on earth happened?")
         }
@@ -124,14 +142,12 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
     func makeBackgroundModeSelectionButton() -> UIButton {
         let button = UIButton(type: .roundedRect)
         button.translatesAutoresizingMaskIntoConstraints = false
-        // force unwrapped because we should never be here if it's nil
         let item = Preferences.backgroundMode!
         button.setTitle(item.description, for: .normal)
         MenuItem.setup(items: backgroundModeMenuItems(currentItem: item, button: button),
                        forButton: button) { [unowned self] alert in
             present(alert, animated: true)
         }
-        
         return button
     }
     
@@ -143,12 +159,9 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
         ]
         
         return all.map { mode in
-            return MenuItem(title: mode.description,
-                            image: nil,
-                            isEnabled: mode == currentItem) { [unowned self] in
+            return MenuItem(title: mode.description, image: nil, isEnabled: mode == currentItem) { [unowned self] in
                 Preferences.backgroundMode = mode
                 button.setTitle(mode.description, for: .normal)
-                // rebuild button
                 MenuItem.setup(items: backgroundModeMenuItems(currentItem: mode, button: button), forButton: button) { [unowned self] alert in
                     present(alert, animated: true)
                 }
@@ -158,36 +171,28 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         switch section {
-        case 0:
-            return .localized("Refresh Rate")
-        case 1:
-            return .localized("Background Mode")
-        case 2:
-            return .localized("Type Colors")
-        case 3:
-            return .localized("Credits")
-        case 4:
-            return .localized("Language")
-        default:
-            return nil
+        [span_8](start_span)case 0: return .localized("Refresh Rate")[span_8](end_span)
+        case 1: return "Startup Options" // ✅ 新增：启动设置的标题
+        [span_9](start_span)case 2: return .localized("Background Mode")[span_9](end_span)
+        [span_10](start_span)case 3: return .localized("Type Colors")[span_10](end_span)
+        [span_11](start_span)case 4: return .localized("Credits")[span_11](end_span)
+        [span_12](start_span)case 5: return .localized("Language")[span_12](end_span)
+        default: return nil
         }
     }
     
     func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch section {
-        case 0:
-            return .localized("RefreshRateExplaination")
-        case 1:
-            return .localized("Antoine needs Always-On Location Authorization in order to enable Background Mode")
-        default:
-            return nil
+        [span_13](start_span)case 0: return .localized("RefreshRateExplaination")[span_13](end_span)
+        [span_14](start_span)case 2: return .localized("Antoine needs Always-On Location Authorization in order to enable Background Mode")[span_14](end_span)
+        default: return nil
         }
     }
     
     func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
         switch indexPath.section {
-        case 2, 3, 4:
-            return true
+        case 3, 4, 5:
+            [span_15](start_span)return true[span_15](end_span)
         default:
             return false
         }
@@ -195,17 +200,15 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         switch indexPath.section {
-        case 2:
-            colorSectionItemTapped(row: indexPath.row)
         case 3:
-            navigationController?.pushViewController(UIHostingController(rootView: CreditsView()), animated: true)
+            [span_16](start_span)colorSectionItemTapped(row: indexPath.row)[span_16](end_span)
         case 4:
-            navigationController?.pushViewController(PreferredLanguageViewController(style: .insetGrouped),
-                                                     animated: true)
+            [span_17](start_span)navigationController?.pushViewController(UIHostingController(rootView: CreditsView()), animated: true)[span_17](end_span)
+        case 5:
+            [span_18](start_span)navigationController?.pushViewController(PreferredLanguageViewController(style: .insetGrouped), animated: true)[span_18](end_span)
         default:
             break
         }
-        
         tableView.deselectRow(at: indexPath, animated: true)
     }
 }
@@ -222,8 +225,6 @@ extension PreferencesViewController {
         let currentSliderValueLabel = UILabel(text: String(format: "%.2f", slider.value), font: nil, textColor: .secondaryLabel)
         
         slider.addAction(for: .valueChanged) {
-            // update according to the slider value
-            // only allow changes by .5 changes
             slider.value = roundf(slider.value * 2.0) * 0.5
             currentSliderValueLabel.text = String(format: "%.2f", slider.value)
             
@@ -235,10 +236,9 @@ extension PreferencesViewController {
         let stackView = UIStackView(arrangedSubviews: [
             currentSliderValueLabel,
             slider,
-            UILabel(text: slider.maximumValue.description, font: nil, textColor: .secondaryLabel) /* max value label */]
-        )
+            UILabel(text: slider.maximumValue.description, font: nil, textColor: .secondaryLabel)
+        ])
         
-        //slider.setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.spacing = 6
         
@@ -265,7 +265,6 @@ extension PreferencesViewController {
     func colorSectionItemTapped(row: Int) {
         // "Reset" button
         if row == MessageEvent.allCases.count {
-            //TODO: - Please make this better
             CodableColor.defaultMessageEvent = nil
             MessageEvent.default.displayColor = nil
             
@@ -280,7 +279,8 @@ extension PreferencesViewController {
             
             CodableColor.errorMessageEvent = CodableColor(uiColor: .systemRed)
             MessageEvent.error.displayColor = .systemRed
-            tableView.reloadSections([2], with: .middle)
+            
+            [span_19](start_span)[span_20](start_span)tableView.reloadSections([3], with: .middle) // ✅ 修改为刷新 [3][span_19](end_span)[span_20](end_span)
             return
         }
         
@@ -303,8 +303,6 @@ extension PreferencesViewController {
         }
         
         present(vc, animated: true) {
-            // set the tag of the view to the index path
-            // so we know in the delegate methods what to edit
             vc.view.tag = row
         }
     }
@@ -323,26 +321,25 @@ extension PreferencesViewController: UIColorPickerViewControllerDelegate, ColorP
     
     func setPreferredColor(_ color: UIColor, withTag tag: Int) {
         switch tag {
-        case 0: // default
+        case 0:
             CodableColor.defaultMessageEvent = CodableColor(uiColor: color)
             MessageEvent.default.displayColor = color
-        case 1: // info
+        case 1:
             CodableColor.infoMessageEvent = CodableColor(uiColor: color)
             MessageEvent.info.displayColor = color
-        case 2: // debug
+        case 2:
             CodableColor.debugMessageEvent = CodableColor(uiColor: color)
             MessageEvent.debug.displayColor = color
-        case 3: // fault
+        case 3:
             CodableColor.faultMessageEvent = CodableColor(uiColor: color)
             MessageEvent.fault.displayColor = color
-        case 4: // error
+        case 4:
             CodableColor.errorMessageEvent = CodableColor(uiColor: color)
             MessageEvent.error.displayColor = color
         default:
             break
         }
         
-        tableView.reloadSections([2], with: .fade)
+        [span_21](start_span)[span_22](start_span)tableView.reloadSections([3], with: .fade) // ✅ 修改为刷新 [3][span_21](end_span)[span_22](end_span)
     }
 }
-
