@@ -40,7 +40,7 @@ class PreferencesViewController: UIViewController {
 
 extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int {
-        [span_5](start_span)[span_6](start_span)// ✅ 修改：原来是5个分区，现在加了启动设置，变成6个[span_5](end_span)[span_6](end_span)
+        // ✅ 修改：原来是5个分区，现在加了启动设置，变成6个
         return 6
     }
     
@@ -62,10 +62,10 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
         case (0, 0):
             return makeTimerIntervalCellWithSlider()
             
-        [span_7](start_span)// ✅ 新增：第1个分区 (自动启动日志抓取)[span_7](end_span)
+        // ✅ 新增：第1个分区 (自动启动日志抓取)
         case (1, 0):
             let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
-            cell.textLabel?.text = "每次打开时自动抓取" // 也可以写为 .localized("Auto Start on Launch") 如果配置了多语言
+            cell.textLabel?.text = "每次打开时自动抓取" // 如果你想加入多语言，可以写 .localized("Auto Start on Launch")
             let uiSwitch = UISwitch()
             uiSwitch.isOn = Preferences.autoStartStreaming
             uiSwitch.addAction(for: .valueChanged) {
@@ -171,20 +171,20 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         switch section {
-        [span_8](start_span)case 0: return .localized("Refresh Rate")[span_8](end_span)
-        case 1: return "Startup Options" // ✅ 新增：启动设置的标题
-        [span_9](start_span)case 2: return .localized("Background Mode")[span_9](end_span)
-        [span_10](start_span)case 3: return .localized("Type Colors")[span_10](end_span)
-        [span_11](start_span)case 4: return .localized("Credits")[span_11](end_span)
-        [span_12](start_span)case 5: return .localized("Language")[span_12](end_span)
+        case 0: return .localized("Refresh Rate")
+        case 1: return "Startup Options"
+        case 2: return .localized("Background Mode")
+        case 3: return .localized("Type Colors")
+        case 4: return .localized("Credits")
+        case 5: return .localized("Language")
         default: return nil
         }
     }
     
     func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch section {
-        [span_13](start_span)case 0: return .localized("RefreshRateExplaination")[span_13](end_span)
-        [span_14](start_span)case 2: return .localized("Antoine needs Always-On Location Authorization in order to enable Background Mode")[span_14](end_span)
+        case 0: return .localized("RefreshRateExplaination")
+        case 2: return .localized("Antoine needs Always-On Location Authorization in order to enable Background Mode")
         default: return nil
         }
     }
@@ -192,7 +192,7 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
     func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
         switch indexPath.section {
         case 3, 4, 5:
-            [span_15](start_span)return true[span_15](end_span)
+            return true
         default:
             return false
         }
@@ -201,11 +201,11 @@ extension PreferencesViewController: UITableViewDataSource, UITableViewDelegate 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         switch indexPath.section {
         case 3:
-            [span_16](start_span)colorSectionItemTapped(row: indexPath.row)[span_16](end_span)
+            colorSectionItemTapped(row: indexPath.row)
         case 4:
-            [span_17](start_span)navigationController?.pushViewController(UIHostingController(rootView: CreditsView()), animated: true)[span_17](end_span)
+            navigationController?.pushViewController(UIHostingController(rootView: CreditsView()), animated: true)
         case 5:
-            [span_18](start_span)navigationController?.pushViewController(PreferredLanguageViewController(style: .insetGrouped), animated: true)[span_18](end_span)
+            navigationController?.pushViewController(PreferredLanguageViewController(style: .insetGrouped), animated: true)
         default:
             break
         }
@@ -280,7 +280,7 @@ extension PreferencesViewController {
             CodableColor.errorMessageEvent = CodableColor(uiColor: .systemRed)
             MessageEvent.error.displayColor = .systemRed
             
-            [span_19](start_span)[span_20](start_span)tableView.reloadSections([3], with: .middle) // ✅ 修改为刷新 [3][span_19](end_span)[span_20](end_span)
+            tableView.reloadSections([3], with: .middle)
             return
         }
         
@@ -340,6 +340,6 @@ extension PreferencesViewController: UIColorPickerViewControllerDelegate, ColorP
             break
         }
         
-        [span_21](start_span)[span_22](start_span)tableView.reloadSections([3], with: .fade) // ✅ 修改为刷新 [3][span_21](end_span)[span_22](end_span)
+        tableView.reloadSections([3], with: .fade)
     }
 }
