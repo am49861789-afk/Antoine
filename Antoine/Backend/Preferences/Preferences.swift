@@ -10,7 +10,7 @@ import CoreLocation
 
 /// A set of user controlled preferences.
 enum Preferences {
-    [span_0](start_span)// ✅ 新增：控制是否在打开软件时自动开始抓取日志，默认为 true[span_0](end_span)
+    // ✅ 新增：控制是否在打开软件时自动开始抓取日志，默认为 true
     @Storage(key: "AutoStartStreaming", defaultValue: true)
     static var autoStartStreaming: Bool
     
