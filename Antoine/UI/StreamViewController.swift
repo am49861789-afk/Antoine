@@ -252,7 +252,7 @@ extension StreamViewController {
         return UIBarButtonItem(image: UIImage(systemName: "ellipsis"), style: .plain, target: self, action: #selector(presentActionSheetForStreanOptions))
     }
     
-    func makeToolbarItems() -> [UIBarButtonItem] {
+        func makeToolbarItems() -> [UIBarButtonItem] {
         var items: [UIBarButtonItem] = [
             UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(presentFilterVC)),
             .space(.flexible),
@@ -267,14 +267,23 @@ extension StreamViewController {
         
         if searchController.isActive {
             items.append(.space(.flexible))
-            items.append(UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up.circle"),
+            
+            // ✅ 修复 iOS 14 无法显示该分享图标的问题
+            let shareImageName: String
+            if #available(iOS 15.0, *) {
+                shareImageName = "square.and.arrow.up.circle" // iOS 15+ 使用带圈版本
+            } else {
+                shareImageName = "square.and.arrow.up.fill"   // iOS 14 降级使用实心版本
+            }
+            
+            items.append(UIBarButtonItem(image: UIImage(systemName: shareImageName),
                                          style: .plain, target: self,
                                          action: #selector(shareSearchedLogs)))
         }
         
         return items
     }
-    
+ 
     func makeShareAllBarButtonItem() -> UIBarButtonItem {
         return UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
                                style: .plain,
