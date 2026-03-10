@@ -10,10 +10,14 @@ import CoreLocation
 
 /// A set of user controlled preferences.
 enum Preferences {
+    [span_0](start_span)// ✅ 新增：控制是否在打开软件时自动开始抓取日志，默认为 true[span_0](end_span)
+    @Storage(key: "AutoStartStreaming", defaultValue: true)
+    static var autoStartStreaming: Bool
+    
     @Storage(key: "StreamControllerTimerInterval", defaultValue: 1.0, callback: _timerIntervalCallback)
     static var streamVCTimerInterval: TimeInterval
     
-	#warning("Fix the split view controller fucking mess on iPad so that this can be true")
+    #warning("Fix the split view controller fucking mess on iPad so that this can be true")
     /// whether or not to use split views on iPad
     @Storage(key: "UseiPadMode", defaultValue: false)
     static var useiPadMode: Bool
