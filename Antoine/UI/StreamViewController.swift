@@ -22,6 +22,9 @@ class StreamViewController: UIViewController {
     var amountOfItemsLabel: UILabel!
     var currentlyShownEntryViewController: EntryViewController?
     
+    [span_1](start_span)[span_2](start_span)// ✅ 新增：标记是否已经加载过一次，防止从设置页返回时重复触发[span_1](end_span)[span_2](end_span)
+    var hasAppearedOnce = false
+    
     // ✅ 新增：保存抓取到的所有日志，用于全局搜索
     var allEntries: [StreamEntry] = []
     
@@ -35,7 +38,7 @@ class StreamViewController: UIViewController {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
         sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = .localized("搜索...") // 如果没本地化可直接写 "Search Logs..."
+        sc.searchBar.placeholder = .localized("Search Logs...") // 如果没本地化可直接写 "Search Logs..."
         return sc
     }()
     
@@ -161,7 +164,18 @@ class StreamViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        logStream.start(options: options)
+        [span_3](start_span)[span_4](start_span)// ✅ 修改：只在 App 刚打开进入此页面时执行判断[span_3](end_span)[span_4](end_span)
+        if !hasAppearedOnce {
+            hasAppearedOnce = true
+            
+            // 如果用户开启了“自动抓取”，则开始流
+            if Preferences.autoStartStreaming {
+                logStream.start(options: options)
+            } else {
+                // 如果未开启，将右上角的按钮图标重置为“播放”图标
+                playPauseButtonItem.image = UIImage(systemName: "play.fill")
+            }
+        }
     }
     
     @objc
