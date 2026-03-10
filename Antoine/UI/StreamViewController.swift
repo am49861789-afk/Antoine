@@ -153,6 +153,9 @@ class StreamViewController: UIViewController {
         // ✅ 启用我们添加的 searchController
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
+        
+        // ✅ 确保弹出详情页时，搜索框不会发生上下文错乱
+        self.definesPresentationContext = true
     }
         
     override func viewDidAppear(_ animated: Bool) {
@@ -170,9 +173,16 @@ class StreamViewController: UIViewController {
     // and one is already present,
     // dismiss the already-presented view controller, then show our view controller
     override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
-        if let presentedViewController {
-            presentedViewController.dismiss(animated: flag) {
-                super.present(viewControllerToPresent, animated: flag, completion: completion)
+        if let presented = presentedViewController {
+            // ✅ 修复：如果当前处于搜索激活状态 (UISearchController)，不要 dismiss 关掉它，
+            // 直接在搜索框之上弹出详情页即可。
+            if presented is UISearchController {
+                presented.present(viewControllerToPresent, animated: flag, completion: completion)
+            } else {
+                // 原有逻辑：如果是其他普通弹窗，先关闭旧的再弹出新的
+                presented.dismiss(animated: flag) {
+                    super.present(viewControllerToPresent, animated: flag, completion: completion)
+                }
             }
         } else {
             super.present(viewControllerToPresent, animated: flag, completion: completion)
