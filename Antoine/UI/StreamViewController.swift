@@ -35,7 +35,7 @@ class StreamViewController: UIViewController {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
         sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = .localized("Search Logs...") // 如果没本地化可直接写 "Search Logs..."
+        sc.searchBar.placeholder = .localized("搜索...") // 如果没本地化可直接写 "Search Logs..."
         return sc
     }()
     
