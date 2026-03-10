@@ -22,18 +22,18 @@ class StreamViewController: UIViewController {
     var amountOfItemsLabel: UILabel!
     var currentlyShownEntryViewController: EntryViewController?
     
-    // ✅ 新增：标记是否已经加载过一次，防止从设置页返回时重复触发
+    // 标记是否已经加载过一次，防止从设置页返回时重复触发
     var hasAppearedOnce = false
     
-    // ✅ 新增：保存抓取到的所有日志，用于全局搜索
+    // 保存抓取到的所有日志，用于全局搜索
     var allEntries: [StreamEntry] = []
     
-    // ✅ 新增：判断当前是否正在搜索
+    // 判断当前是否正在搜索
     var isSearching: Bool {
         return searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
     }
     
-    // ✅ 新增：搜索控制器配置
+    // 搜索控制器配置
     lazy var searchController: UISearchController = {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
@@ -153,18 +153,18 @@ class StreamViewController: UIViewController {
         
         ActivityStream.enableShowPrivateData(Preferences.showPrivateData)
         
-        // ✅ 启用我们添加的 searchController
+        // 启用我们添加的 searchController
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         
-        // ✅ 确保弹出详情页时，搜索框不会发生上下文错乱
+        // 确保弹出详情页时，搜索框不会发生上下文错乱
         self.definesPresentationContext = true
     }
         
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        // ✅ 修改：只在 App 刚打开进入此页面时执行判断
+        // 只在 App 刚打开进入此页面时执行判断
         if !hasAppearedOnce {
             hasAppearedOnce = true
             
@@ -188,7 +188,7 @@ class StreamViewController: UIViewController {
     // dismiss the already-presented view controller, then show our view controller
     override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
         if let presented = presentedViewController {
-            // ✅ 修复：如果当前处于搜索激活状态 (UISearchController)，不要 dismiss 关掉它
+            // 修复：如果当前处于搜索激活状态 (UISearchController)，不要 dismiss 关掉它
             if presented is UISearchController {
                 presented.present(viewControllerToPresent, animated: flag, completion: completion)
             } else {
@@ -290,7 +290,7 @@ extension StreamViewController {
     }
     
     func makeToolbarItems() -> [UIBarButtonItem] {
-        return [
+        var items: [UIBarButtonItem] = [
             UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(presentFilterVC)),
             .space(.flexible),
             playPauseButtonItem,
@@ -299,8 +299,18 @@ extension StreamViewController {
             .space(.flexible),
             UIBarButtonItem(image: UIImage(systemName: "xmark.circle"),
                             style: .done, target: self,
-                            action: #selector(clearAll)),
+                            action: #selector(clearAll))
         ]
+        
+        // 动态：当进入搜索状态时，在低栏多显示一个分享当前搜索结果的按钮
+        if searchController.isActive {
+            items.append(.space(.flexible))
+            items.append(UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up.circle"), // 带圈的分享图标，区分右上角
+                                         style: .plain, target: self,
+                                         action: #selector(shareSearchedLogs)))
+        }
+        
+        return items
     }
     
     func makeShareAllBarButtonItem() -> UIBarButtonItem {
@@ -312,9 +322,19 @@ extension StreamViewController {
     
     @objc
     func shareAllLogs() {
-        let allEntries = dataSource.snapshot().itemIdentifiers
+        // 右上角默认按钮：不论当前是否在搜索，强制分享全部已抓取日志
         let bounds: CGRect = view.bounds
         exportAll(entries: allEntries,
+                  senderView: view,
+                  senderRect: CGRect(x: bounds.midX, y: bounds.midY, width: 0, height: 0))
+    }
+    
+    @objc
+    func shareSearchedLogs() {
+        // 低栏搜索专属分享按钮：只分享当前搜索过滤出来的日志
+        let searchedEntries = dataSource.snapshot().itemIdentifiers
+        let bounds: CGRect = view.bounds
+        exportAll(entries: searchedEntries,
                   senderView: view,
                   senderRect: CGRect(x: bounds.midX, y: bounds.midY, width: 0, height: 0))
     }
@@ -331,7 +351,7 @@ extension StreamViewController {
     
     @objc
     func clearAll() {
-        // ✅ 清空全局日志缓存
+        // 清空全局日志缓存
         allEntries.removeAll()
         var snapshot: NSDiffableDataSourceSnapshot<Section, StreamEntry> = .init()
         snapshot.appendSections([.main])
@@ -361,12 +381,12 @@ extension StreamViewController {
     func addBatch() {
         guard !batch.isEmpty else { return }
         
-        // ✅ 1. 先将新进来的日志存入全局数组
+        // 1. 先将新进来的日志存入全局数组
         allEntries.append(contentsOf: batch)
         
         var snapshot = dataSource.snapshot()
         
-        // ✅ 2. 如果当前正在搜索，就将新的批次过滤后追加；否则全部追加
+        // 2. 如果当前正在搜索，就将新的批次过滤后追加；否则全部追加
         if isSearching, let searchText = searchController.searchBar.text?.lowercased() {
             let filteredBatch = batch.filter { entry in
                 entry.eventMessage.lowercased().contains(searchText) ||
@@ -542,7 +562,7 @@ extension StreamViewController: ActivityStreamDelegate {
     }
 }
 
-// ✅ 新增：遵循 UISearchResultsUpdating 协议处理搜索回调
+// 遵循 UISearchResultsUpdating 协议处理搜索回调
 extension StreamViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
         var snapshot = NSDiffableDataSourceSnapshot<Section, StreamEntry>()
@@ -564,5 +584,8 @@ extension StreamViewController: UISearchResultsUpdating {
         
         // 重新应用快照
         dataSourceApply(snapshot: snapshot)
+        
+        // 每次进入/退出搜索状态时，动态刷新底部工具栏（添加/移除搜索专属分享按钮）
+        setToolbarItems()
     }
 }
