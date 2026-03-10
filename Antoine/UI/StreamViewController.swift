@@ -22,7 +22,7 @@ class StreamViewController: UIViewController {
     var amountOfItemsLabel: UILabel!
     var currentlyShownEntryViewController: EntryViewController?
     
-    [span_1](start_span)[span_2](start_span)// ✅ 新增：标记是否已经加载过一次，防止从设置页返回时重复触发[span_1](end_span)[span_2](end_span)
+    // ✅ 新增：标记是否已经加载过一次，防止从设置页返回时重复触发
     var hasAppearedOnce = false
     
     // ✅ 新增：保存抓取到的所有日志，用于全局搜索
@@ -38,7 +38,7 @@ class StreamViewController: UIViewController {
         let sc = UISearchController(searchResultsController: nil)
         sc.searchResultsUpdater = self
         sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = .localized("Search Logs...") // 如果没本地化可直接写 "Search Logs..."
+        sc.searchBar.placeholder = .localized("Search Logs...")
         return sc
     }()
     
@@ -164,7 +164,7 @@ class StreamViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        [span_3](start_span)[span_4](start_span)// ✅ 修改：只在 App 刚打开进入此页面时执行判断[span_3](end_span)[span_4](end_span)
+        // ✅ 修改：只在 App 刚打开进入此页面时执行判断
         if !hasAppearedOnce {
             hasAppearedOnce = true
             
@@ -188,8 +188,7 @@ class StreamViewController: UIViewController {
     // dismiss the already-presented view controller, then show our view controller
     override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
         if let presented = presentedViewController {
-            // ✅ 修复：如果当前处于搜索激活状态 (UISearchController)，不要 dismiss 关掉它，
-            // 直接在搜索框之上弹出详情页即可。
+            // ✅ 修复：如果当前处于搜索激活状态 (UISearchController)，不要 dismiss 关掉它
             if presented is UISearchController {
                 presented.present(viewControllerToPresent, animated: flag, completion: completion)
             } else {
@@ -347,10 +346,6 @@ extension StreamViewController {
     
     func makeTimer(interval: TimeInterval = Preferences.streamVCTimerInterval) -> Timer {
         return Timer(timeInterval: interval, repeats: true) { [self] _ in
-            // if we're paused,
-            // or collecting logs in background
-            // let's stop here, keep the batch for when we do want
-            // to display it
             guard logStream.isStreaming,
                     UIApplication.shared.applicationState != .background else {
                 return
@@ -469,7 +464,6 @@ extension StreamViewController: UICollectionViewDelegate {
     func presentEntryViewController(_ controller: EntryViewController) {
         if #available(iOS 14, *), let splitViewController, Preferences.useiPadMode {
             if splitViewController.viewController(for: .secondary) is EntryViewController {
-                // retain cycle happens if u don't do this lol
                 splitViewController.setViewController(nil, for: .secondary)
             }
             
@@ -486,7 +480,6 @@ extension StreamViewController: UICollectionViewDelegate {
                 sheet.prefersGrabberVisible = true
                 sheet.detents = [.medium(), .large()]
                 sheet.preferredCornerRadius = 20
-                //sheet.largestUndimmedDetentIdentifier = .large
             }
             
             present(vc, animated: true)
@@ -530,7 +523,6 @@ extension StreamViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, willPerformPreviewActionForMenuWith configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionCommitAnimating) {
         guard let vc = animator.previewViewController as? EntryViewController else { return }
         presentEntryViewController(vc)
-        
     }
 }
 
@@ -542,8 +534,6 @@ extension StreamViewController: ActivityStreamDelegate {
         }
     }
     
-    //TODO: - Error handling? But first i'd have to find what the error codes are
-    // which I can't seem to find anywhere
     func activityStream(didRecieveEntry entryPointer: os_activity_stream_entry_t, error: CInt) {
         let entry = StreamEntry(entry: entryPointer)
         if filter?.entryPassesFilter(entry) ?? true {
